@@ -1,0 +1,764 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8">
+  <title>GetContent — Получите чистое содержимое страницы по любому URL</title>
+  <meta name="description" content="Онлайн сервис для извлечения основного содержимого статьи по URL. Форматы: HTML, Markdown, Text. Простое API, высокая скорость, удобно для интеграций.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="canonical" href="https://getcontent.example.com/">
+  <meta name="keywords" content="content api, парсер, article extractor, получить контент по url, markdown extractor, чистый html, текст статьи api">
+  <meta name="author" content="GetContent">
+  <meta property="og:title" content="GetContent — API получения содержимого страницы" />
+  <meta property="og:description" content="Быстрое извлечение текста и HTML основного контента по любому URL. Для стартапов, ботов и интеграций." />
+  <meta property="og:url" content="https://getcontent.example.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://getcontent.example.com/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+      body {
+          background-color: white; /* Ensure the iframe has a white background */
+      }
+      /* RESET */
+      html,body,div,span,applet,object,iframe,
+      h1,h2,h3,h4,h5,h6,p,blockquote,pre,
+      a,abbr,acronym,address,big,cite,code,
+      del,dfn,em,img,ins,kbd,q,s,samp,
+      small,strike,strong,sub,sup,tt,var,
+      b,u,i,center,
+      dl,dt,dd,ol,ul,li,
+      fieldset,form,label,legend,
+      table,caption,tbody,tfoot,thead,tr,th,td,
+      article,aside,canvas,details,embed,
+      figure,figcaption,footer,header,hgroup,
+      menu,nav,output,ruby,section,summary,
+      time,mark,audio,video {
+          margin: 0; padding: 0; border: 0;
+          vertical-align: baseline;
+          font: inherit;
+          box-sizing: border-box;
+      }
+      *, *:before, *:after { box-sizing: inherit; }
+      html {
+          background: #f5f8fb;
+          font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+          color: #20232a;
+          height: 100%;
+      }
+      body { min-height: 100vh; font-size: 18px; }
+      a {
+          color: #2079e7; text-decoration: none; transition: color .15s;
+      }
+      a:hover, a:focus { color: #1baa8b; }
+
+      /* Layout */
+      .container {
+          max-width: 770px;
+          margin: 0 auto;
+          padding: 0 1rem;
+      }
+
+      /* --- HEADER (responsive + burger menu) --- */
+      header {
+          background: #fff;
+          position: relative;
+          z-index: 22;
+      }
+      .header-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.3rem 0 1.1rem 0;
+      }
+      .logo {
+          display: flex; align-items: center; gap: .55rem;
+          font-size: 1.33rem; font-weight: 700;
+          letter-spacing: -0.03em;
+          color: #03416c;
+          text-decoration: none;
+          user-select: none;
+      }
+      .logo-svg {
+          width: 32px; height:32px;
+          vertical-align: middle;
+          display: inline-block;
+      }
+
+      /* Меню */
+      nav.header-nav {
+          display: flex;
+          gap: 2.1rem;
+          align-items: center;
+      }
+      nav.header-nav a {
+          font-size: 1.01rem;
+          color: #22527a;
+          opacity: .88;
+          padding: .22em .7em;
+          border-radius: 4px;
+          font-weight: 500;
+          transition: background .12s;
+      }
+      nav.header-nav a.active, nav.header-nav a:hover {
+          color: #fff;
+          background: #2079e7;
+          opacity: 1;
+      }
+      .login-btn {
+          font-weight: 600;
+          padding: .5em 1em;
+          border-radius: 6px;
+          border: 1px solid #2079e7;
+          background: #fff;
+          color: #2079e7;
+          cursor: pointer;
+          margin-left: 1.3rem;
+          transition: background .13s, color .13s;
+          font-size: 1rem;
+      }
+      .login-btn:hover, .login-btn:focus {
+          background: #2079e7;
+          color: #fff;
+          outline: none;
+      }
+
+      /* BURGER for mobile */
+      #nav-toggle, .header-burger { display: none; }
+      .header-burger {
+          margin-left: .5em;
+          cursor:pointer; display: none;
+          width: 2.25em; height: 2.25em;
+          align-items: center; justify-content: center;
+      }
+      .header-burger span,.header-burger span:before,.header-burger span:after {
+          display: block;
+          background:#2079e7;
+          height: 3px;
+          width: 25px;
+          border-radius: 2px;
+          position: relative;
+          transition:.22s;
+      }
+      .header-burger span:before,.header-burger span:after {
+          content:'';
+          position: absolute;
+          left: 0;
+      }
+      .header-burger span {position:relative;}
+      .header-burger span:before {top:-8px;}
+      .header-burger span:after {top:8px;}
+      @media (max-width: 700px) {
+          .header-inner { flex-wrap: wrap; padding: 1.05rem 0 1rem 0;}
+          nav.header-nav, .login-btn {
+              display: none;
+          }
+          .header-burger { display: flex; }
+          #nav-toggle:checked ~ .header-mobile {
+              display: block;
+              animation: fadeIn .18s;
+          }
+          #nav-toggle:checked + .header-burger span {
+              background: transparent;
+          }
+          #nav-toggle:checked + .header-burger span:before {
+              transform: rotate(45deg) translate(7px,7px);
+              top:0;
+          }
+          #nav-toggle:checked + .header-burger span:after {
+              transform: rotate(-45deg) translate(7px,-7px);
+              top:0;
+          }
+      }
+      .header-mobile {
+          display: none;
+          position: absolute; right: 0; left: 0; top:100%;
+          background:#fff;
+          box-shadow: 0 3px 16px 0 rgba(30,40,80,0.07);
+          border-radius: 0 0 8px 8px;
+          z-index: 30;
+          padding: 1.12em 0 .9em 0;
+          min-width: 170px;
+          animation: fadeIn .17s;
+      }
+      .header-mobile nav {
+          flex-direction: column;
+          gap: 0.6em;
+          padding: 0 1.2em;
+          align-items: stretch;
+      }
+      .header-mobile .login-btn {
+          margin: 1em 1em 0.3em 1em;
+          width: auto;
+          display: block;
+      }
+      @keyframes fadeIn {
+          from { opacity: 0; } to { opacity: 1;}
+      }
+
+      /* ---- HERO ---- */
+      .hero {
+          display: flex; flex-direction: column; gap: 1.45rem;
+          align-items: flex-start; margin: 3rem 0 2.4rem 0;
+      }
+      .hero-title {
+          font-size: 2.6rem; font-weight: 700; color: #0f3870;
+          line-height: 1.13; letter-spacing: -0.012em;
+      }
+      .hero-title .brand {
+          color: #2079e7; font-weight: 800; }
+      .hero-desc {
+          font-size:1.14rem; color: #3a4762; font-weight: 400; opacity: .97; max-width: 38rem;
+      }
+      .hero-features {
+          display: flex; gap: 0.7em; flex-wrap: wrap; margin-top: .6em;
+      }
+      .feature {
+          display: flex;
+          align-items: center;
+          gap: .45em;
+          font-size: 1.03rem;
+          color: #167cca;
+          background: #e8f2fc;
+          border-radius: 100px;
+          padding: .19em .92em .17em .7em;
+          font-weight: 500;
+          box-shadow: 0 1px 3px 0 rgba(35,122,255,0.04);
+          user-select: none;
+      }
+      .feature-icon { font-size: 1.14em; }
+      /* --- DEMO --- */
+      .demo-box {
+          background: #fff;
+          border-radius: 13px;
+          box-shadow: 0 3px 20px 0 rgba(36,90,180,0.07);
+          padding: 2rem 2.3rem 1.5rem 2.3rem;
+          margin-bottom: 2.15rem;
+          width: 100%;
+          max-width: 700px;
+          margin-left: auto; margin-right: auto;
+          display: flex; flex-direction: column; gap: 1rem;
+      }
+      .demo-title { font-size: 1.16rem; font-weight: 600; margin-bottom: 0.5em;}
+      form {
+          display: flex; flex-wrap: wrap; gap: 0.6em 1em; align-items: center; width: 100%;
+      }
+      .input-url {
+          flex: 3 1 220px;
+          padding: .7em 1em;
+          border: 1px solid #c8e0f7;
+          border-radius: 6px;
+          font-size: 1.07rem;
+          color: #0a3552;
+          background: #f7fbfe;
+          outline: none;
+          transition: border .15s;
+      }
+      .input-url:focus { border-color: #2079e7; background: #f2f6fa; }
+      .select-format {
+          flex: 1 1 120px;
+          padding: .7em 1em;
+          border-radius: 6px;
+          background: #f3f7fa;
+          border: 1px solid #d2e6fa;
+          font-size: 1rem;
+          color: #19407d;
+      }
+      .demo-btn {
+          flex: 0 0 auto;
+          padding: .7em 1.6em;
+          background: linear-gradient(92deg,#2079e7 44%, #1baa8b 93%);
+          border: none;
+          color: #fff; border-radius: 7px;
+          font-weight: 600; font-size: 1.06rem; cursor: pointer;
+          box-shadow: 0 1px 7px 0 rgba(36,115,255,0.09);
+          transition: background .16s;
+          margin-left: .37em;
+      }
+      .demo-btn:hover, .demo-btn:focus {
+          background: linear-gradient(90deg,#185bb7 50%, #12c3a0 100%);
+          outline: none;
+      }
+      .demo-hint {
+          font-size: .96rem;
+          color: #7f98b8;
+          margin-bottom: .1em;
+          margin-top: .2em;
+      }
+
+      /* --- CODE TABS --- */
+      .code-tabs-section {
+          background: #f0f5fa;
+          border-radius: 13px;
+          box-shadow: 0 2px 10px 0 rgba(45,115,255,0.03);
+          padding: 1.2rem 2.1rem 2rem 2.1rem;
+          margin-bottom: 2.2rem;
+          max-width: 700px;
+          margin-left: auto; margin-right: auto;
+      }
+      .code-tabs-title {
+          font-size: 1.12rem; font-weight:600; margin-bottom:.7em; color: #314971;
+      }
+      .code-tabs {
+          display: flex;
+          flex-direction: column;
+          gap: 0.1em;
+      }
+      .tabs-nav {
+          display: flex; gap: 1.1rem; margin-bottom: .6em;
+          border-bottom: 1px solid #d7e3ed;
+      }
+      .tab-label {
+          cursor:pointer;
+          font-size: 1.01rem;
+          color:#5388c9;
+          padding:.36em 1.1em .34em 1.1em;
+          border-radius:7px 7px 0 0;
+          background:none;
+          border:none;
+          font-weight: 500;
+          position:relative;
+          top:1px;
+          transition: background .13s, color .13s;
+      }
+      .tab-label:hover { background: #e1eef8; color: #1b76ad;}
+      .tab-radio { display:none;}
+      .tab-content { display: none;}
+      #tab-curl:checked ~ .tabs-nav [for="tab-curl"],
+      #tab-node:checked ~ .tabs-nav [for="tab-node"],
+      #tab-py:checked ~ .tabs-nav [for="tab-py"] {
+          background: #fff;
+          color: #2079e7;
+          font-weight:600;
+          box-shadow: 0 2px 7px 0 rgba(36,115,255,0.04);
+          border-bottom: 2px solid #fff;
+      }
+      #tab-curl:checked ~ #tab-content-curl,
+      #tab-node:checked ~ #tab-content-node,
+      #tab-py:checked ~ #tab-content-py {
+          display: block;
+          animation: fadeIn .18s;
+      }
+      .tab-content code {
+          display: block;
+          background: #191f32;
+          color: #b8fada;
+          border-radius: 9px;
+          font-family: 'Fira Mono', monospace;
+          font-size: 1.02em;
+          padding: 1.25em 1em 1.1em 1.45em;
+          margin-bottom:.7em;
+          overflow-x: auto;
+          line-height: 1.56;
+      }
+
+      /* --- BENEFITS CARDS (новый стиль, grid) --- */
+      .benefits-section {
+          margin: 2.75rem 0 2.2rem 0;
+      }
+      .benefits-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.7rem;
+      }
+      @media (max-width: 650px) {
+          .benefits-grid { grid-template-columns: 1fr; gap: 1.05rem;}
+      }
+      .benefit-card {
+          display: flex; gap:1.1em; align-items: flex-start;
+          background: #fff;
+          border-radius: 13px;
+          box-shadow: 0 3px 12px 0 rgba(36,115,255,0.036);
+          padding: 1.1rem 1.4rem 1.1rem 1rem;
+          border-left: 6px solid #1baa8b;
+          position: relative;
+          transition: box-shadow .17s;
+          min-width:0;
+      }
+      .benefit-card:hover {
+          box-shadow: 0 1px 18px 0 rgba(36,115,255,0.10);
+          border-left: 7px solid #2079e7;
+      }
+      .benefit-icon {
+          width: 2.5em; height: 2.5em; flex: 0 0 auto; font-size:2em;
+          display: flex; align-items: center; justify-content: center;
+          margin-right:.25em;
+          filter: drop-shadow(0 1px 2px #def2f3);
+          background: #dbfbf1;
+          border-radius:11px;
+      }
+      .benefit-content {
+          display: flex; flex-direction: column; gap: .38em; min-width:0;
+      }
+      .benefit-title {
+          font-weight: 600; color: #2079e7; font-size: 1.07rem; margin-bottom:.2em;
+          word-break: break-all;
+      }
+      .benefit-desc {
+          color: #3d5272; font-size:.99rem;
+          opacity: 0.96; max-width: 35ch;
+      }
+
+      /* --- PRICING --- */
+      .pricing-section {
+          margin: 2.2rem 0 3.5rem 0;
+      }
+      .pricing-title {
+          font-size: 1.27rem;
+          font-weight: 700;
+          color: #0d2356;
+          margin-bottom: 1rem;
+          letter-spacing: -0.01em;
+      }
+      .pricing-table {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+          justify-content: center;
+      }
+      .pricing-plan {
+          background: #fff;
+          border-radius: 11px;
+          box-shadow: 0 2px 12px 0 rgba(24,63,146,0.08);
+          padding: 2.2rem 1.4rem 1.5rem 1.4rem;
+          flex: 1 1 215px;
+          max-width: 340px;
+          min-width: 170px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
+          border: 1.5px solid #e8f2ff;
+          transition: box-shadow .16s, border .13s;
+      }
+      .pricing-plan:hover { border: 2px solid #2079e7; box-shadow: 0 7px 28px 0 rgba(24,63,146,0.11);}
+      .plan-name {
+          font-weight: 600; font-size: 1.05rem; color: #1469c4;
+      }
+      .plan-price {
+          font-size: 2.05rem;font-weight: 700;color: #2079e7;
+          letter-spacing: -0.01em;
+      }
+      .plan-desc { font-size: .97rem; color: #7ca5d4; margin-bottom: .5em;}
+      .plan-list {
+          list-style: none; margin: 0 0 .4em 0; padding: 0;
+          color: #2d5067; font-size: 0.95em;}
+      .plan-list li {
+          margin-bottom:.38em;
+          padding-left:1.12em; position:relative;}
+      .plan-list li:before {
+          content:'✓'; position:absolute; left:0; color:#13c7be; font-weight:bold;}
+      .plan-signup {
+          background: linear-gradient(90deg,#2079e7 60%, #1baa8b 100%);
+          color: #fff; padding: .5em 1.15em; border-radius:5px; border:none;
+          font-weight: 600; font-size: 1.01rem; cursor: pointer; margin-top:.6em;
+          transition: background .15s;
+      }
+      .plan-signup:hover, .plan-signup:focus {
+          background: linear-gradient(90deg,#1469c4 44%, #13c7be 100%);
+          outline: none;
+      }
+
+      /* --- CONTACTS (CTA) --- */
+      .contacts-section {
+          margin: 3.2rem 0 3.1rem 0;
+          background: linear-gradient(95deg,#e9f8fd,#ecfdfc 60%,#fafefd 99%);
+          border-radius: 17px;
+          box-shadow: 0 1px 6px 0 rgba(18,186,233,.03);
+          max-width: 680px;
+          margin-left: auto; margin-right: auto;
+          display: flex; flex-direction: column; align-items: center; gap:1.4em;
+          padding: 2.4rem 1.5rem 2.1rem 1.5rem;
+          text-align: center;
+      }
+      .contacts-title {
+          font-weight: 700; font-size: 1.18rem; color: #0969b5; margin-bottom: .5em;
+      }
+      .contacts-cta-desc {
+          color: #377794; font-size:1.03rem; opacity:.95;
+          margin-bottom: .15em;
+      }
+      .contacts-cta-links {
+          display: flex; flex-wrap: wrap; gap: 1.3em; margin-top:.6em; justify-content:center;
+      }
+      .contact-cta-btn {
+          display:inline-block;
+          background: linear-gradient(96deg,#2079e7 30%,#1baa8b 90%);
+          color:#fff; font-weight:600; font-size:1.06rem;
+          border:none; border-radius:8px; padding:.72em 1.7em;
+          box-shadow:0 1px 7px 0 rgba(36,115,255,0.08);
+          margin-bottom:.3em;
+          transition:background .14s, box-shadow .13s;
+          text-decoration:none;
+      }
+      .contact-cta-btn:hover,.contact-cta-btn:focus {
+          background:linear-gradient(91deg,#1689e7 44%, #15c2ba 100%);
+          box-shadow:0 2px 18px 0 rgba(2,193,160,.09);
+      }
+
+      /* --- FOOTER --- */
+      footer {
+          background: #e9f4fc;
+          color: #586e96;
+          text-align: center;
+          padding: 1.18rem 0 .8rem 0;
+          font-size: 0.96rem;
+          margin-top: 2.4rem;
+          border-radius: 2px 2px 0 0;
+      }
+      .footer-links {
+          margin-bottom: .3em; display: flex; gap: 1.2em; justify-content:center;
+      }
+      .footer-links a {
+          color: #5693f3; font-size: 1rem;
+          text-decoration: underline dotted #79cee9;
+      }
+
+      /* --- RESPONSIVE --- */
+      @media (max-width:700px){
+          .hero-title{font-size:2rem;}
+          .demo-box, .code-tabs-section{padding:1.1rem .7rem;}
+          .container{padding:0 .2rem;}
+          .benefits-section{margin:2.2rem 0;}
+          .contacts-section{padding:1.3rem .4rem 1.6rem .4rem;}
+      }
+      @media (max-width:520px){
+          .footer-links{flex-direction:column;gap:.5em;}
+          .hero-features{flex-direction:column; gap:.5em;}
+      }
+      @media (max-width:430px){
+          .hero-title{font-size:1.25rem;}
+      }
+  </style>
+</head>
+<body>
+<!-- ==== HEADER ==== -->
+<header>
+  <div class="container header-inner">
+    <a href="/" class="logo" aria-label="На главную — GetContent">
+      <!-- ВСТАВЛЕНО ВАШЕ ЛОГО -->
+      <svg class="logo-svg" viewBox="0 0 52 52" fill="none">
+        <path d="M40 36a18 18 0 1 1 0-20" stroke="#1baa8b" stroke-width="6.5" stroke-linecap="round"/>
+        <rect x="26" y="24" width="14.5" height="6" rx="2.9" fill="#2079e7"/>
+      </svg>
+      GetContent
+    </a>
+    <!-- Mobile navigation burger (hidden on desktop) -->
+    <input type="checkbox" id="nav-toggle" hidden>
+    <label for="nav-toggle" class="header-burger" aria-label="Открыть меню" tabindex="0">
+      <span></span>
+    </label>
+    <nav class="header-nav" aria-label="Основное меню">
+      <a href="/docs" aria-label="Документация">Docs</a>
+      <a href="/terms" aria-label="Пользовательское соглашение">Terms</a>
+      <a href="/login" class="login-btn" aria-label="Логин">Войти</a>
+    </nav>
+    <!-- Mobile dropdown menu, открывается по чекбоксу -->
+    <div class="header-mobile">
+      <nav aria-label="Мобильное меню">
+        <a href="/docs" aria-label="Документация">Docs</a>
+        <a href="/terms" aria-label="Пользовательское соглашение">Terms</a>
+      </nav>
+      <a href="/login" class="login-btn" aria-label="Логин">Войти</a>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <!-- ==== HERO ==== -->
+  <section class="hero" aria-label="Описание сервиса">
+    <h1 class="hero-title"><span class="brand">GetContent</span> — получите только <nobr>чистую статью</nobr> по <nobr>любому URL</nobr></h1>
+    <div class="hero-desc">
+      <b>GetContent</b> — онлайн сервис для получения только основного содержимого статьи, без рекламы и мусора.<br>
+      Работает с любым сайтом, форматы вывода: HTML, Markdown, Text.<br>
+      Быстро, удобно для интеграций в стартапах, ботах, корпоративных решениях.
+    </div>
+    <div class="hero-features">
+      <span class="feature"><span class="feature-icon">⚡</span> Мгновенно</span>
+      <span class="feature"><span class="feature-icon">🦾</span> Простое API</span>
+      <span class="feature"><span class="feature-icon">📚</span> Любой язык</span>
+      <span class="feature"><span class="feature-icon">🚀</span> Массовые задачи</span>
+    </div>
+  </section>
+
+  <!-- ==== DEMO ==== -->
+  <section class="demo-box" aria-label="Демо извлечения статьи">
+    <span class="demo-title">Попробуйте прямо сейчас:</span>
+    <form method="POST" action="/demo" autocomplete="off" aria-label="Демо форма запроса контента">
+      <input type="url" class="input-url" name="url" required placeholder="URL статьи, например, https://vc.ru/s/..." aria-label="Ссылка на статью">
+      <select class="select-format" name="format" aria-label="Формат контента">
+        <option value="html">HTML</option>
+        <option value="markdown">Markdown</option>
+        <option value="text">Text</option>
+      </select>
+      <button class="demo-btn" type="submit">Извлечь</button>
+    </form>
+    <div class="demo-hint">Данные приходят без лишних блоков — только текст и медиа статьи 🎯</div>
+  </section>
+
+  <!-- ==== CODE TABS ==== -->
+  <section class="code-tabs-section" aria-label="Примеры интеграции">
+    <div class="code-tabs-title">Примеры интеграции с API</div>
+    <div class="code-tabs">
+      <!-- Радио-контроллеры для табов -->
+      <input class="tab-radio" type="radio" id="tab-curl" name="code-tab" checked>
+      <input class="tab-radio" type="radio" id="tab-node" name="code-tab">
+      <input class="tab-radio" type="radio" id="tab-py" name="code-tab">
+      <div class="tabs-nav" role="tablist">
+        <label class="tab-label" for="tab-curl" role="tab" aria-controls="tab-content-curl">cURL</label>
+        <label class="tab-label" for="tab-node" role="tab" aria-controls="tab-content-node">NodeJS</label>
+        <label class="tab-label" for="tab-py" role="tab" aria-controls="tab-content-py">Python</label>
+      </div>
+      <!-- Контент табов -->
+      <div class="tab-content" id="tab-content-curl" role="tabpanel">
+        <code>
+          curl -X POST https://api.getcontent.example.com/extract \
+          -d 'url=https://habr.com/ru/articles/...' \
+          -d 'format=html'
+        </code>
+      </div>
+      <div class="tab-content" id="tab-content-node" role="tabpanel">
+        <code>// Node.js + axios
+          const axios = require('axios');
+          const res = await axios.post('https://api.getcontent.example.com/extract', {
+          url: 'https://habr.com/ru/articles/...',
+          format: 'markdown'
+          });
+          console.log(res.data);
+        </code>
+      </div>
+      <div class="tab-content" id="tab-content-py" role="tabpanel">
+        <code># Python + requests
+          import requests
+
+          resp = requests.post(
+          'https://api.getcontent.example.com/extract',
+          data={'url': 'https://habr.com/ru/articles/...', 'format': 'text'}
+          )
+          print(resp.text)
+        </code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== BENEFITS ==== -->
+  <section class="benefits-section" aria-label="Преимущества сервиса">
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <!-- SVG Icon: speed -->
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="15" stroke="#1baa8b" stroke-width="3" fill="#fff"/><path d="M18 7v7M29 18h-7" stroke="#2079e7" stroke-width="2.2" stroke-linecap="round"/><circle cx="18" cy="18" r="3.6" fill="#13c7be"/></svg>
+        </div>
+        <div class="benefit-content">
+          <div class="benefit-title">Высокая скорость и <wbr>масштабируемость</div>
+          <div class="benefit-desc">Обработка до 1000+ url в минуту. Выдерживаем большие потоки без задержек.</div>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <!-- SVG Icon: api -->
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="7" y="9" width="22" height="17" rx="4.5" fill="#edfaff" stroke="#2079e7" stroke-width="2"/><path d="M12 19.5h12" stroke="#13c7be" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="24" r="1.4" fill="#1baa8b"/><circle cx="24" cy="24" r="1.4" fill="#1baa8b"/></svg>
+        </div>
+        <div class="benefit-content">
+          <div class="benefit-title">Сверхпростое API</div>
+          <div class="benefit-desc">Документация понятна за 5 минут, запрос — 1 строка. Для любых языков.</div>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <!-- SVG Icon: formats -->
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="9" y="8" width="7" height="20" rx="3.5" fill="#2079e7"/><rect x="20" y="13" width="7" height="15" rx="3.5" fill="#1baa8b"/><rect x="16" y="5.5" width="4" height="4" rx="2" fill="#13c7be"/></svg>
+        </div>
+        <div class="benefit-content">
+          <div class="benefit-title">Выбор формата под задачу</div>
+          <div class="benefit-desc">HTML, Markdown и чистый текст. Удобно для обучения ИИ, выгрузок, публикаций и NLP.</div>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" aria-hidden="true">
+          <!-- SVG Icon: security -->
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="9" y="15" width="18" height="12" rx="4" fill="#edfaff" stroke="#2079e7" stroke-width="2"/><path d="M18 15v-2.5a3 3 0 116 0V15" stroke="#1baa8b" stroke-width="2"/><circle cx="18" cy="23" r="2" fill="#13c7be"/></svg>
+        </div>
+        <div class="benefit-content">
+          <div class="benefit-title">Приватность и безопасность</div>
+          <div class="benefit-desc">Минимальные логи, без куки, никакой рекламы. Конфиденциально для ваших клиентов.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== PRICING ==== -->
+  <section class="pricing-section" aria-label="Тарифы">
+    <div class="pricing-title">Тарифы</div>
+    <div class="pricing-table">
+      <div class="pricing-plan">
+        <div class="plan-name">Базовый</div>
+        <div class="plan-price">0 ₽</div>
+        <div class="plan-desc">Для теста и небольших задач</div>
+        <ul class="plan-list">
+          <li>До 100 запросов/мес</li>
+          <li>Формат: HTML, text</li>
+          <li>Ограничение по скорости</li>
+        </ul>
+        <button class="plan-signup" aria-label="Базовый тариф">Подключить</button>
+      </div>
+      <div class="pricing-plan" style="border:2px solid #1baa8b;">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">от 990 ₽</div>
+        <div class="plan-desc">Для проектов и стартапов</div>
+        <ul class="plan-list">
+          <li>10 000+ запросов / мес</li>
+          <li>Приоритетная очередь</li>
+          <li>HTML, Markdown, text</li>
+          <li>Поддержка Telegram/email</li>
+        </ul>
+        <button class="plan-signup" aria-label="Pro тариф">Выбрать</button>
+      </div>
+      <div class="pricing-plan">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">Custom</div>
+        <div class="plan-desc">Для больших интеграций</div>
+        <ul class="plan-list">
+          <li>100 тыс.+ запросов / мес</li>
+          <li>Собственный инстанс</li>
+          <li>Метрические отчёты</li>
+          <li>Сопровождение 24/7</li>
+        </ul>
+        <button class="plan-signup" aria-label="Enterprise тариф">Связаться</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== CONTACTS (no form) ==== -->
+  <section class="contacts-section" aria-label="Контакты">
+    <div class="contacts-title">Остались вопросы или хотите обсудить интеграцию?</div>
+    <div class="contacts-cta-desc">
+      Мы всегда на связи — ответим быстро и по делу.<br>
+      Если Вас интересуют индивидуальные условия, кастомные сценарии или партнёрство — напишите нам.
+    </div>
+    <div class="contacts-cta-links">
+      <a class="contact-cta-btn" href="mailto:support@getcontent.example.com" aria-label="Email поддержка">Email</a>
+      <a class="contact-cta-btn" href="https://t.me/getcontent_support" target="_blank" aria-label="Telegram поддержка">Telegram</a>
+    </div>
+  </section>
+</main>
+
+<!-- ==== FOOTER ==== -->
+<footer>
+  <div class="footer-links">
+    <a href="/docs" aria-label="Документация">Docs</a>
+    <a href="/terms" aria-label="Пользовательское соглашение">Terms</a>
+    <a href="mailto:support@getcontent.example.com" aria-label="Почта поддержки">Email</a>
+  </div>
+  <div>&copy; 2024 GetContent. Все права защищены.</div>
+</footer>
+</body>
+</html>
+
+
+
+<script>
+
+</script>
+</body>
+</html>
