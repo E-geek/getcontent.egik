@@ -19,4 +19,20 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe('Hello World!');
     });
   });
+
+  describe('loadPage', () => {
+    it('should return page content for a valid URL', async () => {
+      const url = 'https://nodejs.org/';
+      const response = await appController.loadPage(url);
+      expect(response).toHaveProperty('data');
+      expect(response.data).toContain('<!DOCTYPE html>');
+    });
+
+    it('should return an error for an invalid URL', async () => {
+      const url = 'https://warya-batya.egik/';
+      const response = await appController.loadPage(url);
+      expect(response).toHaveProperty('error');
+      expect(response.error).toContain('Failed to load page');
+    });
+  });
 });
